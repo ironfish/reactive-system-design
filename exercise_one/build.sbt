@@ -25,7 +25,7 @@ lazy val commonDependencies = Seq(
   "org.assertj"              %  "assertj-core"               % assertjVer         % Test
 )
 
-lazy val fttas = project in file(".")
+lazy val exercise_one = project in file(".")
 name := "coffee-house"
 organization := "com.typesafe.training"
 version := "1.0.0"
