@@ -19,7 +19,6 @@ build-lists: true
 
 - **What is Reactive?**
 - **Message Driven**
-- **Testing Actors**
 - **Resilience**
 - **Elasticity**
 
@@ -614,7 +613,187 @@ public class CoffeeHouse extends AbstractLoggingActor{
 
 ***
 
-# Exercise One
+## Exercise One
 
 - Review the source code
 - Add code @ // code to create guests should go here
+
+***
+
+# Resilience
+
+***
+
+## Actor Systems revisited
+
+![inline 90%](img/actor-system.png)
+
+***
+
+## Actor Systems revisited
+
+- Within an actor system actors are arranged in a hierarchy
+- Therefore each actor has a parent
+- Each actor has a name which is unique amongst its siblings
+- Therefore each actor can be identified by a unique sequence of names
+
+***
+
+## Actor Path
+
+``` json
+akka://my-system/user/ParentA/ChildA
+akka.tcp://my-system@host.domain.com:5678/user/ParentA/ChildA
+
+ActorPath path = coffeeHouse.path(); // akka://coffee-house-system/user/coffee-house
+
+path.name() // coffee-house
+```
+
+***
+
+## Actor Path
+
+- An *ActorPath* encapsulates
+  - the sequence of actor names together with
+  - the transport protocol and
+  - the address of the actor system
+- To obtain an actor path call *path* on *ActorRef*
+- To get an actor's name call *name* on *ActorPath*
+
+***
+
+## Embrace Failure
+
+- Errors are a fact of life
+- Don't worry, just [let it crash](http://letitcrash.com)
+- Instead of trying to prevent failure simply handle it properly
+
+***
+
+## Failure in Akka
+
+- Akka deals with failure at the level of individual actors
+- An actor fails when it throws an exception (*NonFatal* throwable)
+- Failure can occur
+  - during message processing
+  - during initialization
+  - within a lifecycle hook, e.g. *preStart*
+- How should such failure be handled?
+
+***
+
+## Fault Tolerance
+
+``` java
+@Override
+public SupervisorStrategy supervisorStrategy() {
+  return new OneForOneStrategy(false, DeciderBuilder.
+    match(SomeException.class, e -> SupervisorStrategy.stop())
+    ...
+    .build())
+}
+```
+
+***
+
+## Fault Tolerance
+
+- As you can see, a faulty actor doesn't bring down the whole system
+- This fault tolerance is implemented through **parental supervision**:
+  - If an actor fails, its message processing is suspended,
+  - its children are suspended recursively – i.e. all descendants – and
+  - its parent has to handle the failure
+- Each actor has a supervisor strategy for handling failure of child actors
+  - As you can see there is a default supervisor strategy in place
+
+***
+
+## Supervisor Strategies
+
+- Akka ships with two highly configurable supervisor strategies:
+  - *OneForOneStrategy*: Only the faulty child is affected when it fails
+  - *AllForOneStrategy*: All children are affected when one child fails
+- Both are configured with a *DeciderBuilder*:
+  - Decider = PartialFunction<Throwable, Directive>
+  - A decider maps specific failure to one of the possible directives
+  - If not defined for some failure, the supervisor itself is considered faulty
+
+***
+
+## Supervisor Strategy Directives
+
+- *Resume*: Simply resume message processing
+- *Restart*:
+  - Transparently replace affected actor(s) with new instance(s)
+  - Then resume message processing
+- *Stop*: Stop affected actor(s)
+- *Escalate*: Delegate the decision to the supervisor's parent
+
+***
+
+## Restarting vs. Resuming
+
+- Like stopping, restarting and resuming are recursive operations
+- In both cases, no messages get lost, except for the "faulty" message, if any
+- Resuming simply resumes message processing for the faulty actor and its descendants:
+    - The actor state remains unchanged
+    - Use *Resume* if the state is still considered valid
+
+***
+
+## Restarting vs. Resuming
+
+- Restarting transparently replaces the affected actor(s) with new instance(s):
+    - Actor state and behavior get reinitialized
+    - Use *Restart* if the state is considered corrupted because of the failure
+    - By default all children get stopped (see the *preRestart* lifecycle hook)
+    - Any children that don't get stopped get restarted
+
+***
+
+## Fine-tuning Restarting
+
+``` java
+@Override
+public SupervisorStrategy supervisorStrategy() {
+  return new OneForOneStrategy(maxNrOfRetries, withinTimeRange,
+    DeciderBuilder.
+     match(SomeException.class, e -> SupervisorStrategy.stop())
+    ...
+    .build())
+}
+```
+
+***
+
+## Fine-tuning Restarting
+
+- Restarting is tried up to *maxNrOfRetries* times within consecutive time windows defined by *withinTimeRange*
+- If a window has passed without reaching the retry limit, retry counting begins again for the next window
+- By default *withinTimeRange* is *Duration.Inf*, i.e. there is only one window
+
+***
+
+## Default Supervisor Strategy
+
+- If you don't override *supervisorStrategy*, a *OneForOneStrategy* with the following decider is used by default:
+  - *ActorInitializationException* -> Stop
+  - *ActorKilledException* -> Stop
+  - *DeathPactException*s -> Stop
+  - Other *Exception*s -> Restart
+  - Other *Throwable*s -> Escalates to it's parent
+- Therefore, in many cases, your actor will be restarted by default
+
+***
+
+## Exercise Two
+
+- Review the source code
+- Add code @ // implement SupervisorStrategy here
+- Add code @ // override SupervisorStrategy here
+
+***
+
+# Elasticity
+
