@@ -12,6 +12,7 @@ build-lists: true
 - **Duncan K. DeVore**
 - SWE @ Lightbend (Typesafe)
 - Co-Author, Reactive Application Development, Manning
+- Internal download server: http://172.16.0.20
 
 ***
 
