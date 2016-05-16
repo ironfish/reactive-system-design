@@ -797,3 +797,145 @@ public SupervisorStrategy supervisorStrategy() {
 
 # Elasticity
 
+***
+
+## Message Processing revisited
+
+![inline 90%](img/actor-03.png)
+
+- An actor processes (at most) one message at a time
+- If you want to scale up, you have to use multiple actors in parallel
+
+***
+
+## Digression: Concurrency and Parallelism I
+
+- Definition: Two or more tasks are concurrent, if the order in which they get executed in time is not predetermined
+  - In other words, concurrency introduces non-determinism
+  - Concurrent tasks may or may not get executed in parallel
+  - Hence concurrency is a more general concept than parallelism
+- Concurrent programming is primarily concerned with the complexity that arises due to non-deterministic control flow
+- Parallel programming aims at improving throughput and making control flow deterministic
+
+***
+
+## Digression: Concurrency and Parallelism II
+
+![inline](img/con_and_par.jpg "Concurrency vs. parallelism")
+
+***
+
+## Digression: Concurrency and Parallelism II
+
+- Concurrency is a property of the program
+- Parallel execution is a property of the machine
+
+***
+
+## Routers
+
+- A router routes messages to destination actors called routees
+- Depending on your needs, different routing strategies can be applied
+- Routers can be used standalone or as self contained router actors
+
+***
+
+## Routing Strategies provided by Akka
+
+- *RandomRoutingLogic*
+- *RoundRobinRoutingLogic*
+- *SmallestMailboxRoutingLogic*
+- *ConsistentHashingRoutingLogic*
+- *BroadcastRoutingLogic*
+- *ScatterGatherFirstCompletedRoutingLogic*
+- *TailChoppingRoutingLogic*
+- To write your own routing strategy, extend *RoutingLogic*:
+  - **Attention**: The implementation must be thread-safe!
+
+***
+
+## Router Actors
+
+- Akka provides two flavors of self contained router actors:
+  - Pool router: creates routees as child actors
+  - Group router: routees are provided via actor path
+- Message delivery is optimized:
+  - Messages don't get enqueued in the mailbox of the router actor
+  - Instead, messages are delivered to a routee directly
+
+***
+
+## Specially handled Messages
+
+- Every message sent to a router is delivered to one of its routees
+- Yet the following messages are handled in a special way:
+  - *PoisonPill* is not delivered to any routee
+  - *Kill* is not delivered to any routee
+  - The payload of *Broadcast* is delivered to all routees
+
+***
+
+## Creating a Router Actor
+
+``` java
+ActorRef router =
+  context().actorOf(
+    new RoundRobinPool(5).props(Props.create(Worker.class)),
+    "router2");
+)
+
+context().actorOf(FromConfig.getInstance().props(routeeProps),
+  "router3");
+```
+
+***
+
+## Creating a Router Actor
+
+- Router actors must be created programmatically
+- Either use with a *RouterConfig*:
+  - *FromConfig* completely relies on external configuration
+  - Other *RouterConfig*s use a mix of programmatic and external configuration
+- Or use the *props* method of a *Pool* or *Group* configuration
+
+***
+
+## Important Router Configuration
+
+- Settings can be defined in configuration or programmatically:
+  - If both are given, configuration wins
+- A pool router creates *nrOfInstances* child actors as routees:
+  - An optional *resizer* can dynamically adjust the number of routees
+  - The default *supervisorStrategy* escalates all failure
+- A group router uses existing *routees*
+
+***
+
+## Router Configuration Example
+
+``` json
+akka {
+  actor {
+    deployment {
+      /top-level/child-a {
+        router = smallest-mailbox-pool
+        nr-of-instances = 4
+      }
+      /top-level/child-b {
+        router = round-robin-pool
+        resizer {
+          lower-bound = 1
+          upper-bound = 4
+        }
+      ...
+```
+
+***
+
+## Exercise Three
+
+- Review the source code
+- Add config @ // # Use an externally configured `round-robin` pool router
+- Add code @ // need import for routing from config
+- Add code @ // replace with router from config
+
