@@ -112,6 +112,7 @@ public class CoffeeHouseApp implements Terminal{
     protected void createGuest(int count, Coffee coffee, int maxCoffeeCount){
         for (int i = 0; i < count; i++) {
             // code to create guests should go here
+            coffeeHouse.tell(CoffeeHouse.CreateGuest.Instance, ActorRef.noSender());
         }
     }
 

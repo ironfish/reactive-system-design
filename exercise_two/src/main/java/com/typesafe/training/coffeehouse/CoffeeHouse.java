@@ -44,6 +44,9 @@ public class CoffeeHouse extends AbstractLoggingActor{
     private final int caffeineLimit;
 
     // implement SupervisorStrategy here
+    private SupervisorStrategy strategy = new OneForOneStrategy(false, DeciderBuilder.
+        match(Guest.CaffeineException.class, e -> SupervisorStrategy.stop()).
+        matchAny(e -> SupervisorStrategy.restart()).build());
 
     public CoffeeHouse(int caffeineLimit){
         log().debug("CoffeeHouse Open");
@@ -75,6 +78,10 @@ public class CoffeeHouse extends AbstractLoggingActor{
     }
 
     // override SupervisorStrategy here
+    @Override
+    public SupervisorStrategy supervisorStrategy(){
+        return strategy;
+    }
 
     private boolean coffeeApproved(ApproveCoffee approveCoffee){
         final int guestCaffeineCount = guestCaffeineBookkeeper.get(approveCoffee.guest);

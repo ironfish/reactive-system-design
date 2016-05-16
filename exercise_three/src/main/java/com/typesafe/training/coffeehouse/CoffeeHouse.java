@@ -12,7 +12,7 @@ import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
-// need import for routing from config
+import akka.routing.FromConfig;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -115,9 +115,8 @@ public class CoffeeHouse extends AbstractLoggingActor{
     }
 
     protected ActorRef createBarista(){
-        // replace with router from config
-        return context().actorOf(Barista.props(baristaPrepareCoffeeDuration, baristaAccuracy), "barista");
-    }
+        return context().actorOf(FromConfig.getInstance().props(
+            Barista.props(baristaPrepareCoffeeDuration, baristaAccuracy)), "barista");    }
 
     protected ActorRef createWaiter(){
         return context().actorOf(Waiter.props(self(), barista, waiterMaxComplaintCount), "waiter");
