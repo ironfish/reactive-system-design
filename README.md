@@ -1,4 +1,4 @@
-footer: ![75%](img/typesafe_logo.png)
+footer: ![25%](img/lightbend_no_letter.png) Lightbend
 autoscale: true
 build-lists: true
 
